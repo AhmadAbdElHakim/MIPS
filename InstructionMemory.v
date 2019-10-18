@@ -12,7 +12,7 @@ integer i;
 always @(posedge clk)		//at rising edge the instruction is read
 begin
 
- Instruction <= instmem[ReadAdd];
+ Instruction <= instmem[ReadAdd]>>2;
 
 end
 
