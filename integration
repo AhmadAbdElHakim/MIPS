@@ -458,6 +458,8 @@ endmodule
 clock 1(clk);
 
 module mips_cpu(clk);
+always @(posedge clk)
+begin
 wire [31:0] RA,MO2,MO3,MO4,MO5,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA;
 wire [4:0]rs,rt,rd,shift,MO1;
 wire [5:0]opcode,func;
@@ -494,5 +496,5 @@ Mux32 1(MO2,RD2,SignOut,alusrc);
 Mux32 2(MO3,aluresult,ReadData,memtoreg);
 Mux32 3(MO4,Add1out,Add2out,(zero&branch)); 
 Mux32 4(MO5,MO4,fullJA,jump);
- 
+ end
 end module
