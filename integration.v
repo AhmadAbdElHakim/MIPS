@@ -458,9 +458,7 @@ endmodule
 clock 1(clk);
 
 module mips_cpu(clk);
-always @(posedge clk)
-begin
-wire [31:0] RA,MO2,MO3,MO4,MO5,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA;
+wire [31:0] RA,MO2,MO3,MO4,MO5,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA,IR;
 wire [4:0]rs,rt,rd,shift,MO1;
 wire [5:0]opcode,func;
 wire [15:0]offset;
@@ -469,8 +467,8 @@ wire [3:0]aluctl,L4BitsOfNewPC;
 wire regdst,jump,branch,memread,memtoreg,aluop,memwrite,alusrc,regwrite,zero;
 wire [27:0]shiftleft2out;
 
-pc 1(RA,MO5,clk);
-InstructionMemory 1(IR,RA,clk);
+pc pc1(RA,MO5,clk);
+InstructionMemory IM1(IR,RA,clk);
 rs=IR[25:21];
 rt=IR[20:16];
 rd=IR[15:11];
@@ -480,21 +478,21 @@ func=IR[5:0];
 offset=IR[15:0];
 JA=IR[25:0];
 L4BitsOfNewPC=Add1out[31:28];
-fullJA=(shiftleft2out+L4BitsOfNewPC);
-RegFile 1(RD1,RD2,rs,rt,MO1,MO3,regwrite,clk);
-MIPSALU 1(aluctr,RD1,MO2,shift,aluresult,zero);
-AluCtl 1(func,aluop,aluctl);
-SignExtend16_32 1(SignOut,offset);
-control 1(regdst,jump,branch,memread,memtoreg,aluop,memwrite,alusrc,regwrite,opcode);
-DataMemory 1(ReadData,aluresult,RD2,memread,memwrite,clk);
-ShiftLeft32 1(Add2in2,SignOut);
-ShiftAdder 1(Add2out,Add1out,Add2in2);
-PCAdder 1(Add1out,RA);
-ShiftLeft26_28 1(shiftleft2out,JA);
-Mux5 1(MO1,rt,rd,regdst);
-Mux32 1(MO2,RD2,SignOut,alusrc);
-Mux32 2(MO3,aluresult,ReadData,memtoreg);
-Mux32 3(MO4,Add1out,Add2out,(zero&branch)); 
-Mux32 4(MO5,MO4,fullJA,jump);
- end
+fullJA={L4BitsOfNewPC,shiftleft2out};
+RegFile RF1(RD1,RD2,rs,rt,MO1,MO3,regwrite,clk);
+MIPSALU MALU1(aluctr,RD1,MO2,shift,aluresult,zero);
+AluCtl AluCtl1(func,aluop,aluctl);
+SignExtend16_32 SE1(SignOut,offset);
+control Ctl1(regdst,jump,branch,memread,memtoreg,aluop,memwrite,alusrc,regwrite,opcode);
+DataMemory DM1(ReadData,aluresult,RD2,memread,memwrite,clk);
+ShiftLeft32 SL1(Add2in2,SignOut);
+ShiftAdder SA1(Add2out,Add1out,Add2in2);
+PCAdder PCADD1(Add1out,RA);
+ShiftLeft26_28 SL2(shiftleft2out,JA);
+Mux5 MUX1(MO1,rt,rd,regdst);
+Mux32 MUX2(MO2,RD2,SignOut,alusrc);
+Mux32 MUX3(MO3,aluresult,ReadData,memtoreg);
+Mux32 MUX4(MO4,Add1out,Add2out,(zero&branch)); 
+Mux32 MUX5(MO5,MO4,fullJA,jump);
+ 
 end module
