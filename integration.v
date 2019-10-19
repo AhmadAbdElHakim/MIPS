@@ -454,10 +454,8 @@ endmodule
 
 
 
-
-clock 1(clk);
-
-module mips_cpu(clk);
+module mips_cpu(clock);
+input clk;
 wire [31:0] RA,MO2,MO3,MO4,MO5,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA,IR;
 wire [4:0]rs,rt,rd,shift,MO1;
 wire [5:0]opcode,func;
@@ -469,16 +467,16 @@ wire [27:0]shiftleft2out;
 
 pc pc1(RA,MO5,clk);
 InstructionMemory IM1(IR,RA,clk);
-rs=IR[25:21];
-rt=IR[20:16];
-rd=IR[15:11];
-shift=IR[10:6];
-opcode=IR[31:26];
-func=IR[5:0];
-offset=IR[15:0];
-JA=IR[25:0];
-L4BitsOfNewPC=Add1out[31:28];
-fullJA={L4BitsOfNewPC,shiftleft2out};
+assign rs={IR[25:21]};
+assign rt=IR[20:16];
+assign rd=IR[15:11];
+assign shift=IR[10:6];
+assign opcode=IR[31:26];
+assign func=IR[5:0];
+assign offset=IR[15:0];
+assign JA=IR[25:0];
+assign L4BitsOfNewPC=Add1out[31:28];
+assign fullJA={shiftleft2out,L4BitsOfNewPC};
 RegFile RF1(RD1,RD2,rs,rt,MO1,MO3,regwrite,clk);
 MIPSALU MALU1(aluctr,RD1,MO2,shift,aluresult,zero);
 AluCtl AluCtl1(func,aluop,aluctl);
@@ -495,4 +493,5 @@ Mux32 MUX3(MO3,aluresult,ReadData,memtoreg);
 Mux32 MUX4(MO4,Add1out,Add2out,(zero&branch)); 
 Mux32 MUX5(MO5,MO4,fullJA,jump);
  
-end module
+endmodule
+
