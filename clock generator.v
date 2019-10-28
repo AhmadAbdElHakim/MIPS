@@ -3,13 +3,13 @@ module clock(clk);
 output reg clk;
 initial
 	begin
-		assign clk = 0;
+		clk <= 0;
 	end
 always
 	begin
 		#625
-		assign clk = 1;
+		clk <= 1;
 		#625
-		assign clk = 0;
+		clk <= 0;
 	end
 endmodule
