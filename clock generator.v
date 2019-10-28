@@ -1,5 +1,5 @@
 module clock(clk);
-`timescale 100ps/1ps
+`timescale 10ps/1ps
 output reg clk;
 initial
 	begin
@@ -7,9 +7,9 @@ initial
 	end
 always
 	begin
-		#625
+		#3125
 		clk <= 1;
-		#625
+		#3125
 		clk <= 0;
 	end
 endmodule
