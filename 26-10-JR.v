@@ -1,21 +1,37 @@
-module PC(Out,In,clk);
+module PC(Out,In,clk,endexecution);
 input clk;
 input [31:0]In;
 output reg [31:0]Out;
-
+output reg endexecution; ///////////////
 initial
 begin
 Out[31:0]=0;
 end
 
-always@(posedge clk)
+/////////////////// know number of instuctions
+integer Ay7aga;
+integer lines=-1;
+integer file1;
+initial
+begin
+file1=$fopen("C:/localhost/_ToInstMem.txt","r");
+while (! $feof(file1))
+begin
+$fscanf(file1,"%d",Ay7aga);
+lines = lines+1;
+end
+$fclose(file1);
+end
 
+always@(posedge clk)
 begin
 Out <= In;
+if ((In>>2)>lines+1)
+endexecution=1;
 end
 
 endmodule
-module DataMemory(ReadData,Address,WriteData,MemRead,MemWrite,clk);
+module DataMemory(ReadData,Address,WriteData,MemRead,MemWrite,clk,endofexec);
 
 input clk;
 input MemRead;
@@ -23,7 +39,7 @@ input MemWrite;
 input[15:0]Address;
 input[31:0]WriteData;
 output reg[31:0]ReadData;
-
+input endofexec; ///////////////////////////////////flaggggggg
 reg[31:0]datamem[0:8191];
 integer file;
 integer i;
@@ -41,35 +57,10 @@ datamem[Address>>2] <= WriteData;
 end
 end
 
-endmodule
-
-
-
-module InstructionMemory(Instruction,ReadAdd,clk);
-
-input clk;                   //the instruction is constant within the cycle
-input [31:0]ReadAdd;         //4 hexadicimal digits from pc
-output reg [31:0]Instruction;
-
-reg[31:0]instmem[0:8191];
-integer file;
-integer i;
-
-always @(negedge clk)        //at rising edge the instruction is read
+always @(posedge endofexec) /////////////to monitor DataMemory contents in a file///////////////////
 begin
- Instruction <= instmem[ReadAdd>>2];
-end
-
-initial                //to fill the instruction memory from a file
-begin
-$readmemb("C:/localhost/MIPS/InstructionMemory/ToInstMem.txt",instmem);
-end
-
-initial                //to monitor memory contents in a file
-begin
-i=0;
-file=$fopen("C:/localhost/MIPS/InstructionMemory/FromInstMem.txt");
-$fmonitor(file,"%b // %h \n ",instmem[i],i );
+file=$fopen("C:/localhost/_FromDataMem.txt");
+$fmonitor(file,"%b  //%d",datamem[i],i*4);
 for(i=0;i<8191;i=i+1)
 begin
 #1
@@ -80,6 +71,37 @@ end
 endmodule
 
 
+module InstructionMemory(Instruction,ReadAdd,clk,);
+input clk;                   //the instruction is constant within the cycle
+input [31:0]ReadAdd;         //4 hexadicimal digits from pc
+output reg [31:0]Instruction;
+reg[31:0]instmem[0:8191];
+integer file1,file2;
+integer i;
+
+always @(negedge clk)        //at rising edge the instruction is read
+begin
+ Instruction <= instmem[ReadAdd>>2];
+end
+
+initial                //to fill the instruction memory from a file
+begin
+$readmemb("C:/localhost/_ToInstMem.txt",instmem);
+end
+
+initial                //to monitor memory contents in a file
+begin
+i=0;
+file2=$fopen("C:/localhost/_FromInstMem.txt");
+$fmonitor(file2,"%b // %h ",instmem[i],i );
+for(i=0;i<8191;i=i+1)
+begin
+#1
+i=i;
+end
+end
+
+endmodule
 
 module MIPSALU (ctl, readData1, lowerIn, shamt, ALUresult, zero);
 // lowerIn is the mux output
@@ -106,7 +128,7 @@ always @ (ctl, readData1, lowerIn)
  endcase
 endmodule
 /////////////////////////////////////////////////////////////////////////////////////
-module RegFile (ReadData1,ReadData2,ReadReg1,ReadReg2,WriteReg,WriteData,RegWrite,clk);
+module RegFile (ReadData1,ReadData2,ReadReg1,ReadReg2,WriteReg,WriteData,RegWrite,clk,endofexec);
 input clk;
 input RegWrite;		//from control
 input [4:0] ReadReg1;   //from instruction bus
@@ -116,8 +138,9 @@ input [31:0] WriteData; //from instruction bus
 output reg [31:0] ReadData1;
 output reg [31:0] ReadData2;
 reg [31:0] registers [0:31];
-integer i;
+integer i=0 ;
 integer file;
+input endofexec;
 
 initial begin
 registers[0]=32'b00000000000000000000000000000000;
@@ -136,21 +159,18 @@ if(RegWrite)
 	registers[WriteReg]=WriteData;
 end
 
-
-initial				//to monitor registers contents in a file
+always @(posedge endofexec) ///////////to monitor registers contents in a file///////////////
 begin
-i=0;
-file=$fopen("C:/localhost/MIPS/RegFile/FromRegFile.txt");
-$fmonitor(file,"%b // %d \n ",registers[i],i );
+file=$fopen("C:/localhost/_FromRegFile.txt");
+$fmonitor(file,"%b // %d",registers[i],i );
 for(i=0;i<31;i=i+1)
 begin
 #1
 i=i;
 end
-
 end
-endmodule
 
+endmodule
 
 module ALUMux (MUXout, readData2, in2, ALUSrc);
 
@@ -427,7 +447,8 @@ wire [2:0]aluop;
 wire [3:0]aluctl,L4BitsOfNewPC;
 wire regdst,jump,branch,memread,memtoreg,memwrite,alusrc,regwrite,zero,jr;
 wire [27:0]shiftleft2out;
-PC pc1(RA,MO6,clk);
+wire endofexec; ////////////////////flag
+PC pc1(RA,MO6,clk,endofexec); //flaggggggg//////////
 InstructionMemory IM1(IR,RA,clk);
 assign rs=IR[25:21];
 assign rt=IR[20:16];
@@ -439,12 +460,12 @@ assign offset=IR[15:0];
 assign JA=IR[25:0];
 assign L4BitsOfNewPC=Add1out[31:28];
 assign fullJA={shiftleft2out,L4BitsOfNewPC};
-RegFile RF1(RD1,RD2,rs,rt,MO1,MO3,regwrite&(!jr),clk);
+RegFile RF1(RD1,RD2,rs,rt,MO1,MO3,regwrite&(!jr),clk,endofexec); //flaggggggg/////////
 MIPSALU MALU1(aluctl,RD1,MO2,shift,aluresult,zero);
 AluCtl AluCtl1(func,aluop,aluctl,jr);
 SignExtend16_32 SE1(SignOut,offset);
 control Ctl1(regdst,jump,branch,memread,memtoreg,aluop,memwrite,alusrc,regwrite,opcode);
-DataMemory DM1(ReadData,aluresult[15:0],RD2,memread,memwrite,clk);
+DataMemory DM1(ReadData,aluresult[15:0],RD2,memread,memwrite,clk,endofexec); ////////flaggggggg/////////
 ShiftLeft32 SL1(Add2in2,SignOut);
 ShiftAdder SA1(Add2out,Add1out,Add2in2);
 PCAdder PCADD1(Add1out,RA);
