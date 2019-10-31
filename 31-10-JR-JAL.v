@@ -10,15 +10,16 @@ end
 
 /////////////////// know number of instuctions
 integer Ay7aga;
-integer lines=-1;
+integer lines=0;
 integer file1;
+integer cycles=0;
 initial
 begin
 file1=$fopen("C:/localhost/_ToInstMem.txt","r");
 while (! $feof(file1))
 begin
 $fscanf(file1,"%d",Ay7aga);
-lines = lines+1;
+lines = lines+1; //////// number of lines in code
 end
 $fclose(file1);
 end
@@ -26,11 +27,13 @@ end
 always@(posedge clk)
 begin
 Out <= In;
-if ((In>>2)>lines+1)
+cycles=cycles+1; ///////////// 
+if (cycles>(lines))  ///////// know execution ended if we made enough cycles
 endexecution=1;
 end
 
 endmodule
+
 module DataMemory(ReadData,Address,WriteData,MemRead,MemWrite,clk,endofexec);
 
 input clk;
@@ -69,6 +72,7 @@ end
 end
 
 endmodule
+
 
 
 module InstructionMemory(Instruction,ReadAdd,clk,);
@@ -415,6 +419,18 @@ aluSrc<=1'bx;
 regWrite<=1'b0;
 end
 
+else if(opCode==6'b000011) //jal
+begin
+regDst<=1'bx;
+jump<=1'b1;
+branch<=1'b0;
+memRead<=1'b0;
+memToReg<=1'bx;
+aluOp<=3'bxxx; 
+memWrite<=1'b0;
+aluSrc<=1'bx;
+regWrite<=1'b1;
+end
 
 else
 begin
@@ -438,8 +454,8 @@ endmodule
 
 module mips_cpu(clk);
 input clk;
-wire [31:0] RA,MO2,MO3,MO4,MO5,MO6,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA,IR;
-wire [4:0]rs,rt,rd,shift,MO1;
+wire [31:0] RA,MO2,MO3,MO4,MO5,MO6,MO7,RD1,RD2,aluresult,SignOut,ReadData,Add2in2,Add1out,Add2out,fullJA,IR;
+wire [4:0]rs,rt,rd,shift,MO1,MO8;
 wire [5:0]opcode,func;
 wire [15:0]offset;
 wire [25:0]JA;
@@ -459,8 +475,8 @@ assign func=IR[5:0];
 assign offset=IR[15:0];
 assign JA=IR[25:0];
 assign L4BitsOfNewPC=Add1out[31:28];
-assign fullJA={shiftleft2out,L4BitsOfNewPC};
-RegFile RF1(RD1,RD2,rs,rt,MO1,MO3,regwrite&(!jr),clk,endofexec); //flaggggggg/////////
+assign fullJA={L4BitsOfNewPC,shiftleft2out};
+RegFile RF1(RD1,RD2,rs,rt,MO8,MO7,regwrite&(!jr),clk,endofexec); //flaggggggg/////////
 MIPSALU MALU1(aluctl,RD1,MO2,shift,aluresult,zero);
 AluCtl AluCtl1(func,aluop,aluctl,jr);
 SignExtend16_32 SE1(SignOut,offset);
@@ -471,11 +487,13 @@ ShiftAdder SA1(Add2out,Add1out,Add2in2);
 PCAdder PCADD1(Add1out,RA);
 ShiftLeft26_28 SL2(shiftleft2out,JA);
 Mux5 MUX1(MO1,rt,rd,regdst);
+Mux5 MUX8(MO8,MO1,5'b11111,jump);
 Mux32 MUX2(MO2,RD2,SignOut,alusrc);
 Mux32 MUX3(MO3,aluresult,ReadData,memtoreg);
 Mux32 MUX4(MO4,Add1out,Add2out,(zero&branch)); 
 Mux32 MUX5(MO5,MO4,fullJA,jump);
 Mux32 MUX6(MO6,MO5,RD1,jr);
+Mux32 MUX7(MO7,MO3,Add1out,jump);
 endmodule
 
 module tbmips();
