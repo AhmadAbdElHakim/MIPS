@@ -10,7 +10,7 @@ end
 
 /////////////////// know number of instuctions
 integer Ay7aga;
-integer lines=0;
+integer lines=-1;
 integer file1;
 integer cycles=0;
 initial
@@ -28,8 +28,9 @@ always@(posedge clk)
 begin
 Out <= In;
 cycles=cycles+1; ///////////// 
-if (cycles>(lines))  ///////// know execution ended if we made enough cycles
+if (cycles>200) ///////// know execution ended if we made enough cycles
 endexecution=1;
+
 end
 
 endmodule
@@ -127,11 +128,12 @@ always @ (ctl, readData1, lowerIn)
 	6:ALUresult <= readData1 - lowerIn;		//sub (beq)
 	7:ALUresult <= readData1 < lowerIn ? 1:0;	//slt
 	//12:ALUresult <= ~ (readData1 | lowerIn);	//nor
-	14:ALUresult <= lowerIn >> shamt;		//sll
+	14:ALUresult <= lowerIn << shamt;		//sll
 	default:ALUresult <= 0;
  endcase
 endmodule
 /////////////////////////////////////////////////////////////////////////////////////
+
 module RegFile (ReadData1,ReadData2,ReadReg1,ReadReg2,WriteReg,WriteData,RegWrite,clk,endofexec);
 input clk;
 input RegWrite;		//from control
@@ -201,6 +203,7 @@ else if (aluop==3'b001)
 else if (aluop==3'b010) //R type
   begin
      case (funct)
+        0: begin aluctl <= 14; jr <=0; end
 	32:begin aluctl <= 2; jr <=0; end //add R type
 	34:begin aluctl <= 6; jr <=0; end //sub R type
 	36:begin aluctl <= 0; jr <=0; end //and R type
