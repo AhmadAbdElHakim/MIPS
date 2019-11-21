@@ -10,7 +10,7 @@ end
 
 /////////////////// know number of instuctions
 integer Ay7aga;
-integer lines=0;
+integer lines=-1;
 integer file1;
 integer cycles=0;
 initial
@@ -28,9 +28,8 @@ always@(posedge clk)
 begin
 Out <= In;
 ////cycles=cycles+1; ///////////// 
-if ((Out/4)>lines) ///////// know execution ended if we made enough cycles
+if ((In>>2)>lines+1)
 endexecution=1;
-
 end
 
 endmodule
